@@ -164,6 +164,39 @@ Test.Unit.Runner.prototype = {
                  testcases[testcase], testcases["setup"], testcases["teardown"]
                ));
           }
+
+          if( /^context/.test(testcase)) {
+            var setup = function() {
+              var contextSetup = testcases[testcase].setup.toString();  
+              var testsuiteSetup = testcases.setup.toString() || function() {};
+
+              return function() { 
+                (eval( '(' + testsuiteSetup + ')' ))();
+                (eval( '(' + contextSetup + ')' ))();
+              }
+            }
+            
+            var contextTeardown = testcases[testcase].teardown ? testcases[testcase].teardown.toString() : (function() {}).toString();
+            var teardown = function() {
+              (eval( '(' + contextTeardown + ')' ))();
+              var testsuiteTeardown = testcases.teardown || function() {};
+              testsuiteTeardown();
+            }            
+
+            for( var contextTest in testcases[testcase] ) {
+              if(/^test/.test(contextTest)) {
+                this.tests.push(
+                  new Test.Unit.Testcase(
+                    testcase + "_" + contextTest, 
+                    testcases[testcase][contextTest], 
+                    setup()
+                    ,teardown
+                  ));
+              }  
+            }
+
+          } // if context
+
         }
       }
     }
